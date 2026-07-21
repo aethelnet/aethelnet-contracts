@@ -1,0 +1,34 @@
+node_modules/
+.pnp
+.pnp.js
+
+# Hardhat
+cache/
+artifacts/
+typechain/
+typechain-types/
+
+# Environment
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Coverage
+coverage/
+coverage.json
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
