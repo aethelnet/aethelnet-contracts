@@ -1,4 +1,4 @@
-# Aethelnet Contracts 🗡️🛡️
+# Aethelnet Contracts
 
 The on-chain governance and token foundation for **Aethelnet** – the Sovereign AGI Grassroots Ecosystem.
 
