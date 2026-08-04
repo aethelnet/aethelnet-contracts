@@ -14,6 +14,12 @@ contract TheForge {
         address proposer;
     }
 
+    struct PeerNode {
+        string ipAddress;
+        uint256 lastSeen;
+        bool isActive;
+    }
+
     uint256 public nextProposalId;
     Groth16Verifier public verifier;
     
@@ -21,9 +27,14 @@ contract TheForge {
     mapping(uint256 => mapping(address => bool)) public hasVotedPublic;
     mapping(uint256 => mapping(bytes32 => bool)) public hasVotedShielded;
 
+    // P2P Registry
+    mapping(address => PeerNode) public peerRegistry;
+    address[] public registeredPeers;
+
     event ProposalCreated(uint256 id, string title, address proposer);
     event VotedPublic(uint256 id, address voter, bool support);
     event VotedShielded(uint256 id, uint256 nullifierHash, bool support);
+    event NodeRegistered(address owner, string ipAddress);
 
     constructor(address _verifier) {
         verifier = Groth16Verifier(_verifier);
@@ -89,5 +100,47 @@ contract TheForge {
         }
         
         emit VotedShielded(proposalId, nullifierHash, support);
+    }
+
+    // --- P2P Registry Methods ---
+    function registerNode(string memory ipAddress) public {
+        if (peerRegistry[msg.sender].lastSeen == 0) {
+            // New node
+            registeredPeers.push(msg.sender);
+        }
+        
+        peerRegistry[msg.sender] = PeerNode({
+            ipAddress: ipAddress,
+            lastSeen: block.timestamp,
+            isActive: true
+        });
+        
+        emit NodeRegistered(msg.sender, ipAddress);
+    }
+
+    function getActiveNodes() public view returns (string[] memory) {
+        uint256 activeCount = 0;
+        
+        // First pass: count active nodes (seen in the last 24 hours)
+        for (uint i = 0; i < registeredPeers.length; i++) {
+            if (peerRegistry[registeredPeers[i]].isActive && 
+                block.timestamp - peerRegistry[registeredPeers[i]].lastSeen < 24 hours) {
+                activeCount++;
+            }
+        }
+        
+        // Second pass: collect IPs
+        string[] memory ips = new string[](activeCount);
+        uint256 currentIndex = 0;
+        
+        for (uint i = 0; i < registeredPeers.length; i++) {
+            PeerNode memory node = peerRegistry[registeredPeers[i]];
+            if (node.isActive && block.timestamp - node.lastSeen < 24 hours) {
+                ips[currentIndex] = node.ipAddress;
+                currentIndex++;
+            }
+        }
+        
+        return ips;
     }
 }
