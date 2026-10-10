@@ -4,12 +4,19 @@ const { ethers } = require('ethers');
 require('dotenv').config();
 
 const app = express();
-app.use(cors());
+// The bundler pays gas from the SEPOLIA_PRIVATE_KEY wallet, so do not let arbitrary websites call it.
+// Allow browser origins explicitly via BUNDLER_CORS_ORIGINS="http://localhost:5173,https://example.org".
+const corsOrigins = (process.env.BUNDLER_CORS_ORIGINS || "").split(",").map(s => s.trim()).filter(Boolean);
+if (corsOrigins.length) app.use(cors({ origin: corsOrigins }));
 app.use(express.json());
 
 const rpcUrl = process.env.SEPOLIA_RPC_URL || "https://ethereum-sepolia.publicnode.com";
 const provider = new ethers.JsonRpcProvider(rpcUrl);
-const privateKey = process.env.SEPOLIA_PRIVATE_KEY || "0000000000000000000000000000000000000000000000000000000000000000";
+const privateKey = process.env.SEPOLIA_PRIVATE_KEY;
+if (!privateKey) {
+    console.error("SEPOLIA_PRIVATE_KEY is not set. Put it in .env (see .env.example); never hard-code it.");
+    process.exit(1);
+}
 const wallet = new ethers.Wallet(privateKey, provider);
 
 const ENTRY_POINT_ADDRESS = "0x0000000071727De22E5E9d8BAf0edAc6f37da032";
@@ -56,6 +63,9 @@ app.post('/rpc', async (req, res) => {
     }
 });
 
-app.listen(3000, () => {
-    console.log("Micro-Bundler running on http://localhost:3000/rpc");
+// Bind to localhost by default: anyone who can reach this port can spend the wallet's gas.
+const HOST = process.env.BUNDLER_HOST || "127.0.0.1";
+const PORT = Number(process.env.BUNDLER_PORT || 3000);
+app.listen(PORT, HOST, () => {
+    console.log(`Micro-Bundler running on http://${HOST}:${PORT}/rpc`);
 });
