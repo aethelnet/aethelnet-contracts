@@ -44,5 +44,12 @@ We use `circom` and `snarkjs` to achieve absolute privacy.
    npx hardhat run scripts/simulate_vote.js
    ```
 
+4. **Deploy to Sepolia:** store the deployer key in Hardhat's secret store (never in the repo):
+   ```bash
+   npx hardhat vars set SEPOLIA_PRIVATE_KEY
+   npx hardhat run scripts/deploy.js --network sepolia
+   ```
+   `SEPOLIA_PRIVATE_KEY` / `SEPOLIA_RPC_URL` environment variables work as well.
+
 ## License
 GNU AGPLv3 (See [LICENSE](./LICENSE))
