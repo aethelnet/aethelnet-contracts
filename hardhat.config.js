@@ -1,13 +1,23 @@
 require("@nomicfoundation/hardhat-toolbox");
+require("dotenv").config();
 
-const PRIVATE_KEY = "d35bcb391904a95ef74a366654964d63ab09675ae7b82036d0f3ff28a0a69b1c";
+const PRIVATE_KEY = process.env.SEPOLIA_PRIVATE_KEY || "0000000000000000000000000000000000000000000000000000000000000000";
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
-  solidity: "0.8.20",
+  solidity: {
+    version: "0.8.28",
+    settings: {
+      evmVersion: "cancun",
+      optimizer: {
+        enabled: true,
+        runs: 200
+      }
+    }
+  },
   networks: {
     sepolia: {
-      url: "https://ethereum-sepolia.publicnode.com",
+      url: process.env.SEPOLIA_RPC_URL || "https://ethereum-sepolia.publicnode.com",
       accounts: [PRIVATE_KEY]
     }
   }
