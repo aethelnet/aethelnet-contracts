@@ -1,7 +1,29 @@
 require("@nomicfoundation/hardhat-toolbox");
 require("dotenv").config();
 
-const PRIVATE_KEY = process.env.SEPOLIA_PRIVATE_KEY || "0000000000000000000000000000000000000000000000000000000000000000";
+let vars;
+try {
+  vars = require("hardhat/config").vars;
+} catch (e) {
+  vars = null;
+}
+
+function getSecret(name, fallback = "") {
+  if (process.env[name]) return process.env[name];
+  if (vars && typeof vars.get === "function") {
+    try {
+      return vars.get(name, fallback);
+    } catch (e) {
+      return fallback;
+    }
+  }
+  return fallback;
+}
+
+// Never commit keys. Configure via .env or Hardhat secret store:
+//   npx hardhat vars set SEPOLIA_PRIVATE_KEY
+const SEPOLIA_PRIVATE_KEY = getSecret("SEPOLIA_PRIVATE_KEY", "");
+const SEPOLIA_RPC_URL = getSecret("SEPOLIA_RPC_URL", "https://ethereum-sepolia.publicnode.com");
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
@@ -17,8 +39,9 @@ module.exports = {
   },
   networks: {
     sepolia: {
-      url: process.env.SEPOLIA_RPC_URL || "https://ethereum-sepolia.publicnode.com",
-      accounts: [PRIVATE_KEY]
+      url: SEPOLIA_RPC_URL,
+      // Local tasks (compile, test, simulate) work without a key
+      accounts: SEPOLIA_PRIVATE_KEY ? [SEPOLIA_PRIVATE_KEY] : []
     }
   }
 };
