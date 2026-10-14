@@ -37,3 +37,4 @@ circuits/build/pot*_000*.ptau
 circuits/build/pot14_*.ptau
 circuits/build/circuit_0000.zkey
 
+voter_snapshot.json
