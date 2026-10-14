@@ -12,6 +12,7 @@ contract TheForge {
         bool executed;
         uint256 endTime;
         address proposer;
+        uint256 voterMerkleRoot;
     }
 
     struct PeerNode {
@@ -20,7 +21,9 @@ contract TheForge {
         bool isActive;
     }
 
+    address public owner;
     uint256 public nextProposalId;
+    uint256 public defaultVoterMerkleRoot;
     Groth16Verifier public verifier;
     
     mapping(uint256 => Proposal) public proposals;
@@ -38,10 +41,17 @@ contract TheForge {
 
     constructor(address _verifier) {
         verifier = Groth16Verifier(_verifier);
+        owner = msg.sender;
     }
 
-    function createProposal(string memory title, string memory description) public {
+    function setDefaultVoterMerkleRoot(uint256 _root) external {
+        require(msg.sender == owner, "Only owner can set default Merkle root");
+        defaultVoterMerkleRoot = _root;
+    }
+
+    function createProposalWithRoot(string memory title, string memory description, uint256 voterMerkleRoot) public returns (uint256) {
         uint256 id = nextProposalId++;
+        uint256 root = voterMerkleRoot != 0 ? voterMerkleRoot : defaultVoterMerkleRoot;
         proposals[id] = Proposal({
             id: id,
             title: title,
@@ -50,9 +60,21 @@ contract TheForge {
             againstVotes: 0,
             executed: false,
             endTime: block.timestamp + 7 days,
-            proposer: msg.sender
+            proposer: msg.sender,
+            voterMerkleRoot: root
         });
         emit ProposalCreated(id, title, msg.sender);
+        return id;
+    }
+
+    function createProposal(string memory title, string memory description) public returns (uint256) {
+        return createProposalWithRoot(title, description, defaultVoterMerkleRoot);
+    }
+
+    function setProposalMerkleRoot(uint256 proposalId, uint256 voterMerkleRoot) external {
+        require(proposalId < nextProposalId, "Proposal does not exist");
+        require(msg.sender == owner || msg.sender == proposals[proposalId].proposer, "Unauthorized");
+        proposals[proposalId].voterMerkleRoot = voterMerkleRoot;
     }
 
     function votePublic(uint256 proposalId, bool support) public {
@@ -77,16 +99,19 @@ contract TheForge {
         uint[2] memory a,
         uint[2][2] memory b,
         uint[2] memory c,
-        uint256 nullifierHash,
-        uint256 commitment
+        uint256 nullifierHash
     ) public {
         require(proposalId < nextProposalId, "Proposal does not exist");
         require(!hasVotedShielded[proposalId][bytes32(nullifierHash)], "Nullifier already used");
         
+        Proposal storage prop = proposals[proposalId];
+        require(block.timestamp <= prop.endTime, "Voting ended");
+        require(prop.voterMerkleRoot != 0, "Merkle root not set");
+        
         uint256 voteVal = support ? 1 : 0;
         
-        // input = [nullifierHash, commitment, proposalId, vote]
-        uint[4] memory publicInputs = [nullifierHash, commitment, proposalId, voteVal];
+        // Circom public signals order: [nullifierHash, root, proposalId, vote]
+        uint[4] memory publicInputs = [nullifierHash, prop.voterMerkleRoot, proposalId, voteVal];
         
         require(verifier.verifyProof(a, b, c, publicInputs), "Invalid ZK Proof");
 
@@ -94,9 +119,9 @@ contract TheForge {
         hasVotedShielded[proposalId][bytes32(nullifierHash)] = true;
         
         if (support) {
-            proposals[proposalId].forVotes += 100; // Mock fixed voting power for anonymity
+            prop.forVotes += 100; // Mock fixed voting power for anonymity
         } else {
-            proposals[proposalId].againstVotes += 100;
+            prop.againstVotes += 100;
         }
         
         emit VotedShielded(proposalId, nullifierHash, support);
