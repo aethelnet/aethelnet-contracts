@@ -28,7 +28,12 @@ coverage.json
 *.sln
 *.sw?
 
-# Logs
+# Logs & Ceremony Temporaries
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+circuits/build/pot*_000*.ptau
+circuits/build/pot14_*.ptau
+circuits/build/circuit_0000.zkey
+

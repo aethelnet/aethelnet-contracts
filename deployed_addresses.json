@@ -1,0 +1,7 @@
+{
+  "network": "sepolia",
+  "Groth16Verifier": "0xEACc7E508D6af5Af4b895edef1D8443D981E3333",
+  "AethelToken": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+  "TheForge": "0xe79e0686FE39C1f3252D5404411010b2F36CaA2f",
+  "deployedAt": "2026-09-25T10:00:00.000Z"
+}
